@@ -17,11 +17,11 @@
             --text-main: #1b2a32;
             --text-muted: #627d86;
             --primary: #002d62;          /* Volksbank Deep Blue */
-            --primary-hover: #001f44;
-            --accent-lime: #6cc24a;      /* Volksbank Lime Green */
+            --accent-green: #6cc24a;     /* Volksbank Lime Green for buttons */
+            --accent-green-hover: #5ab13c;
             --business-color: #0056b3;   /* Distinct Business Blue */
             --personal-color: #d97706;   /* Distinct Personal Amber/Orange */
-            --growth-color: #6cc24a;     /* Growth (former General) */
+            --growth-color: #6cc24a;     /* Growth */
             --border: #d9e2ec;
             --danger: #e3342f;
             --success: #38c172;
@@ -115,7 +115,7 @@
         }
 
         .progress-bar-fill {
-            background: linear-gradient(90deg, var(--accent-lime), var(--primary));
+            background: linear-gradient(90deg, var(--accent-green), var(--primary));
             height: 100%;
             width: 0%;
             transition: width 0.4s ease;
@@ -136,13 +136,13 @@
         }
 
         input:focus, select:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(0, 45, 98, 0.15);
+            border-color: var(--accent-green);
+            box-shadow: 0 0 0 3px rgba(108, 194, 74, 0.15);
         }
 
         button {
-            background-color: var(--primary);
-            color: white;
+            background-color: var(--accent-green); /* Green buttons */
+            color: #ffffff;
             font-weight: 600;
             border: none;
             cursor: pointer;
@@ -150,7 +150,7 @@
         }
 
         button:hover {
-            background-color: var(--primary-hover);
+            background-color: var(--accent-green-hover);
         }
 
         #focus-banner {
@@ -255,8 +255,8 @@
         }
 
         .badge-growth {
-            background-color: rgba(108, 194, 74, 0.15);
-            color: #4a8b30;
+            background-color: rgba(108, 194, 74, 0.18);
+            color: #3b7324;
         }
 
         .badge-schedule {
@@ -328,7 +328,7 @@
 
         <div class="nav-tabs">
             <button class="nav-btn active" onclick="switchView('today')">Today's Hub</button>
-            <button class="nav-btn" onclick="switchView('clients')">Manage Clients / Entities</button>
+            <button class="nav-btn" onclick="switchView('clients')">Manage Clients</button>
         </div>
 
         <!-- VIEW 1: TODAY'S HUB & GAMEFIED PROGRESS -->
@@ -353,11 +353,12 @@
             <div class="card">
                 <h3 style="margin-top:0; font-size:1rem; color:var(--primary);">Add New Task</h3>
                 <form id="task-form">
-                    <input type="text" id="task-input" placeholder="What needs to be done? (e.g., Learn GEO strategies)" required>
+                    <input type="text" id="task-input" placeholder="What needs to be done? (e.g., Content calendar)" required>
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <select id="task-client" required>
-                            <option value="growth">Growth (General)</option>
+                        <select id="task-assignment" required>
+                            <option value="growth">Growth</option>
+                            <!-- Dynamically populated clients -->
                         </select>
                         <select id="task-freq-type" onchange="toggleDaySelector()">
                             <option value="daily">Daily Recurrent</option>
@@ -390,19 +391,19 @@
         <!-- VIEW 2: CLIENT MANAGEMENT -->
         <div id="view-clients" class="view-section">
             <div class="card">
-                <h3 style="margin-top:0; color:var(--primary);">Add New Client / Entity</h3>
+                <h3 style="margin-top:0; color:var(--primary);">Add New Client</h3>
                 <form id="client-form">
-                    <input type="text" id="client-name-input" placeholder="Name (e.g. Acme Corp)" required>
+                    <input type="text" id="client-name-input" placeholder="Client Name (e.g., Acme Corp)" required>
                     <select id="client-type-input" required>
                         <option value="business">Business</option>
                         <option value="personal">Personal</option>
                     </select>
-                    <button type="submit">Save Entity</button>
+                    <button type="submit">Save Client</button>
                 </form>
             </div>
 
             <div class="card">
-                <h3 style="margin-top:0; color:var(--primary);">Your Roster (Business vs Personal)</h3>
+                <h3 style="margin-top:0; color:var(--primary);">Your Client Roster</h3>
                 <ul id="client-list" class="task-list">
                 </ul>
             </div>
@@ -414,7 +415,7 @@
         const API_URL = "https://script.google.com/macros/s/AKfycbwgtXhoNiEyXKi4nIweq87j8VczLygzU60WyUtze7Je1XPQj39b0Qhj2d5oPhdpZc8Y/exec";
         
         let clients = JSON.parse(localStorage.getItem('focus_flow_clients')) || [];
-        let tasks = JSON.parse(localStorage.getItem('focus_flow_tasks_v6')) || [];
+        let tasks = JSON.parse(localStorage.getItem('focus_flow_tasks_v7')) || [];
 
         const daysMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const now = new Date();
@@ -433,7 +434,7 @@
                         clients = data.clients;
                         tasks = data.tasks;
                         localStorage.setItem('focus_flow_clients', JSON.stringify(clients));
-                        localStorage.setItem('focus_flow_tasks_v6', JSON.stringify(tasks));
+                        localStorage.setItem('focus_flow_tasks_v7', JSON.stringify(tasks));
                     }
                     checkDailyReset();
                     render();
@@ -453,7 +454,7 @@
             statusEl.innerText = "💾 Saving...";
             
             localStorage.setItem('focus_flow_clients', JSON.stringify(clients));
-            localStorage.setItem('focus_flow_tasks_v6', JSON.stringify(tasks));
+            localStorage.setItem('focus_flow_tasks_v7', JSON.stringify(tasks));
             render();
 
             try {
@@ -506,7 +507,7 @@
             const typeInput = document.getElementById('client-type-input');
             const newClient = { 
                 id: Date.now(), 
-                name: nameInput.value.trim(), 
+                name: nameInput.value.trim(),
                 type: typeInput.value // 'business' or 'personal'
             };
             clients.push(newClient);
@@ -522,7 +523,7 @@
         document.getElementById('task-form').addEventListener('submit', (e) => {
             e.preventDefault();
             const text = document.getElementById('task-input').value.trim();
-            const clientId = document.getElementById('task-client').value;
+            const assignment = document.getElementById('task-assignment').value; // 'growth' or client id
             const freqType = document.getElementById('task-freq-type').value;
             
             let selectedDays = [];
@@ -534,7 +535,7 @@
             const newTask = {
                 id: Date.now(),
                 text,
-                clientId,
+                assignment,
                 freqType,
                 selectedDays,
                 completed: false,
@@ -576,19 +577,37 @@
             }
         }
 
-        function renderClientsDropdown() {
-            const select = document.getElementById('task-client');
-            let html = `<option value="growth">Growth (General)</option>`;
-            clients.forEach(c => {
-                html += `<option value="${c.id}">${escapeHtml(c.name)} (${c.type.toUpperCase()})</option>`;
-            });
+        function renderAssignmentDropdown() {
+            const select = document.getElementById('task-assignment');
+            let html = `<option value="growth">Growth</option>`;
+            
+            // Separate clients into Business and Personal for clean dropdown grouping or listing
+            const businessClients = clients.filter(c => c.type === 'business');
+            const personalClients = clients.filter(c => c.type === 'personal');
+
+            if (businessClients.length > 0) {
+                html += `<optgroup label="Business Clients">`;
+                businessClients.forEach(c => {
+                    html += `<option value="${c.id}">${escapeHtml(c.name)}</option>`;
+                });
+                html += `</optgroup>`;
+            }
+
+            if (personalClients.length > 0) {
+                html += `<optgroup label="Personal Clients">`;
+                personalClients.forEach(c => {
+                    html += `<option value="${c.id}">${escapeHtml(c.name)}</option>`;
+                });
+                html += `</optgroup>`;
+            }
+
             select.innerHTML = html;
         }
 
         function renderClientList() {
             const list = document.getElementById('client-list');
             if (clients.length === 0) {
-                list.innerHTML = `<li class="empty-state">No clients/entities added yet. Add your first above!</li>`;
+                list.innerHTML = `<li class="empty-state">No clients added yet. Add your first client above!</li>`;
                 return;
             }
             list.innerHTML = clients.map(c => `
@@ -653,10 +672,10 @@
 
             list.innerHTML = activeTasks.map(task => {
                 let badgeHtml = '';
-                if (task.clientId === 'growth') {
+                if (task.assignment === 'growth') {
                     badgeHtml = `<span class="badge badge-growth">Growth</span>`;
                 } else {
-                    const clientObj = clients.find(c => c.id == task.clientId);
+                    const clientObj = clients.find(c => c.id == task.assignment);
                     const clientName = clientObj ? clientObj.name : 'Client';
                     const clientType = clientObj ? clientObj.type : 'business';
                     const badgeClass = clientType === 'personal' ? 'badge-personal' : 'badge-business';
@@ -690,7 +709,7 @@
         }
 
         function render() {
-            renderClientsDropdown();
+            renderAssignmentDropdown();
             renderClientList();
             renderTasks();
         }
