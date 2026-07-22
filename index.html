@@ -9,7 +9,7 @@
     <!-- Green Apple Icon for iOS Home Screen -->
     <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='115' fill='%236cc24a'/><path d='M344.5 153.2c-23.7 0-45.7 13.8-56.9 25.1-10.3 10.4-24.8 17.6-39.6 17.5-14.8-.1-28.7-7-39-17.2-11.4-11.4-33.3-25.4-57.3-25.4-44.5 0-82.9 36.1-82.9 101.4 0 71.4 47.9 161.4 89.6 207.2 21 23.3 45.9 49.3 75.3 48.5 29.8-.8 40.5-19.2 75.8-19.2 35.3 0 45.2 19.2 75.8 19.2 29.8.8 55.4-26.6 76.4-50 41.7-45.8 89.6-135.8 89.6-207.2 0-65.3-38.4-101.4-82.9-101.4z' fill='%23ffffff'/><path d='M320.5 96c14.2-17.1 23.8-40.9 21.2-64-21.9 1.8-48.4 14.6-64 32.1-13.4 15.1-25.2 39.4-21.8 62.6 24.3 1.8 48.6-11.9 64.6-30.7z' fill='%23ffffff'/><circle cx='200' cy='230' r='18' fill='%236cc24a'/><path d='M190 280c25 15 77 15 102 0 12-7 18 10 10 20-20 25-82 25-102 0-8-10-2-27 10-20z' fill='%236cc24a'/></svg>">
     
-    <title>Focus Flow - Back to Basics</title>
+    <title>Focus Flow - Task Manager</title>
     <style>
         :root {
             --bg-color: #f4f7f6;
@@ -307,14 +307,6 @@
             align-items: center;
             gap: 4px;
         }
-
-        .edit-input {
-            padding: 4px 8px;
-            font-size: 0.9rem;
-            border: 1px solid var(--accent-green);
-            border-radius: 4px;
-            outline: none;
-        }
     </style>
 </head>
 <body>
@@ -362,10 +354,11 @@
                             <option value="growth">Growth</option>
                             <!-- Dynamically populated clients -->
                         </select>
-                        <select id="task-freq-type" onchange="toggleDaySelector()">
+                        <select id="task-freq-type" onchange="toggleFreqSelectors()">
                             <option value="daily">Daily Recurrent</option>
                             <option value="specific">Specific Days of Week</option>
                             <option value="once">One-Time Task</option>
+                            <option value="future">In the Future (Specific Date)</option>
                         </select>
                     </div>
 
@@ -377,6 +370,10 @@
                         <label><input type="checkbox" name="days" value="Fri"> Fri</label>
                         <label><input type="checkbox" name="days" value="Sat"> Sat</label>
                         <label><input type="checkbox" name="days" value="Sun"> Sun</label>
+                    </div>
+
+                    <div id="date-selector-container" style="display: none;">
+                        <input type="date" id="task-target-date" style="width: 100%; box-sizing: border-box;">
                     </div>
 
                     <button type="submit">Add Task</button>
@@ -413,12 +410,13 @@
         const API_URL = "https://script.google.com/macros/s/AKfycbwgtXhoNiEyXKi4nIweq87j8VczLygzU60WyUtze7Je1XPQj39b0Qhj2d5oPhdpZc8Y/exec";
         
         let clients = JSON.parse(localStorage.getItem('focus_flow_clients')) || [];
-        let tasks = JSON.parse(localStorage.getItem('focus_flow_tasks_v9')) || [];
+        let tasks = JSON.parse(localStorage.getItem('focus_flow_tasks_v10')) || [];
 
         const daysMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const now = new Date();
         const todayDayStr = daysMap[now.getDay()];
         const todayDateStr = now.toDateString();
+        const todayISOStr = now.toISOString().split('T')[0];
         
         document.getElementById('date-display').innerText = now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
@@ -432,7 +430,7 @@
                         clients = data.clients;
                         tasks = data.tasks;
                         localStorage.setItem('focus_flow_clients', JSON.stringify(clients));
-                        localStorage.setItem('focus_flow_tasks_v9', JSON.stringify(tasks));
+                        localStorage.setItem('focus_flow_tasks_v10', JSON.stringify(tasks));
                     }
                     checkDailyReset();
                     render();
@@ -452,7 +450,7 @@
             statusEl.innerText = "💾 Saving...";
             
             localStorage.setItem('focus_flow_clients', JSON.stringify(clients));
-            localStorage.setItem('focus_flow_tasks_v9', JSON.stringify(tasks));
+            localStorage.setItem('focus_flow_tasks_v10', JSON.stringify(tasks));
             render();
 
             try {
@@ -493,10 +491,13 @@
             }
         }
 
-        function toggleDaySelector() {
+        function toggleFreqSelectors() {
             const freq = document.getElementById('task-freq-type').value;
-            const container = document.getElementById('day-selector-container');
-            container.style.display = freq === 'specific' ? 'flex' : 'none';
+            const dayContainer = document.getElementById('day-selector-container');
+            const dateContainer = document.getElementById('date-selector-container');
+            
+            dayContainer.style.display = freq === 'specific' ? 'flex' : 'none';
+            dateContainer.style.display = freq === 'future' ? 'block' : 'none';
         }
 
         document.getElementById('client-form').addEventListener('submit', (e) => {
@@ -533,9 +534,17 @@
             const freqType = document.getElementById('task-freq-type').value;
             
             let selectedDays = [];
+            let targetDate = null;
+
             if (freqType === 'specific') {
                 const checkboxes = document.querySelectorAll('input[name="days"]:checked');
                 checkboxes.forEach(cb => selectedDays.push(cb.value));
+            } else if (freqType === 'future') {
+                targetDate = document.getElementById('task-target-date').value;
+                if (!targetDate) {
+                    alert("Please select a target date for the future task.");
+                    return;
+                }
             }
 
             const newTask = {
@@ -544,6 +553,7 @@
                 assignment,
                 freqType,
                 selectedDays,
+                targetDate,
                 completed: false,
                 timestamp: null,
                 postponedDate: null
@@ -551,6 +561,7 @@
 
             tasks.push(newTask);
             document.getElementById('task-input').value = '';
+            document.getElementById('task-target-date').value = '';
             saveToSheets();
         });
 
@@ -606,7 +617,7 @@
             }
             list.innerHTML = clients.map(c => `
                 <li class="task-item">
-                    <span class="task-text" style="font-weight: 600; cursor: pointer;" onclick="editClient(${c.id})" title="Click to edit">${escapeHtml(c.name)} ✏️</span>
+                    <span class="task-text" style="font-weight: 600;">${escapeHtml(c.name)}</span>
                     <div class="action-btns">
                         <button class="btn-sm postpone-btn" onclick="editClient(${c.id})">Edit</button>
                         <button class="delete-btn" onclick="deleteClient(${c.id})">&times;</button>
@@ -629,6 +640,9 @@
                     return t.selectedDays && t.selectedDays.includes(todayDayStr);
                 }
                 if (t.freqType === 'once') return !t.completed;
+                if (t.freqType === 'future') {
+                    return t.targetDate === todayISOStr;
+                }
                 return true;
             });
 
@@ -674,6 +688,10 @@
                     badgeHtml = `<span class="badge badge-client">${escapeHtml(clientName)}</span>`;
                 }
 
+                let scheduleLabel = task.freqType;
+                if (task.freqType === 'specific') scheduleLabel = task.selectedDays.join(', ');
+                if (task.freqType === 'future') scheduleLabel = `Due: ${task.targetDate}`;
+
                 return `
                     <li class="task-item ${task.completed ? 'completed' : ''}">
                         <div class="task-info">
@@ -685,7 +703,7 @@
                         </div>
                         <div class="badges">
                             ${badgeHtml}
-                            <span class="badge badge-schedule">${task.freqType === 'specific' ? task.selectedDays.join(', ') : task.freqType}</span>
+                            <span class="badge badge-schedule">${scheduleLabel}</span>
                             <div class="action-btns">
                                 <button class="btn-sm postpone-btn" onclick="postponeTask(${task.id})" title="Postpone">Postpone</button>
                                 <button class="delete-btn" onclick="deleteTask(${task.id})">&times;</button>
