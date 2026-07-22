@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- iOS Web App Meta Tags for Custom Home Screen Icon -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Focus Flow">
-    <!-- Embedded SVG Apple Touch Icon for iOS Home Screen -->
+    <!-- Green Apple Icon for iOS Home Screen -->
     <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='115' fill='%2378be20'/><path d='M344.5 153.2c-23.7 0-45.7 13.8-56.9 25.1-10.3 10.4-24.8 17.6-39.6 17.5-14.8-.1-28.7-7-39-17.2-11.4-11.4-33.3-25.4-57.3-25.4-44.5 0-82.9 36.1-82.9 101.4 0 71.4 47.9 161.4 89.6 207.2 21 23.3 45.9 49.3 75.3 48.5 29.8-.8 40.5-19.2 75.8-19.2 35.3 0 45.2 19.2 75.8 19.2 29.8.8 55.4-26.6 76.4-50 41.7-45.8 89.6-135.8 89.6-207.2 0-65.3-38.4-101.4-82.9-101.4z' fill='%23ffffff'/><path d='M320.5 96c14.2-17.1 23.8-40.9 21.2-64-21.9 1.8-48.4 14.6-64 32.1-13.4 15.1-25.2 39.4-21.8 62.6 24.3 1.8 48.6-11.9 64.6-30.7z' fill='%23ffffff'/><circle cx='200' cy='230' r='18' fill='%2378be20'/><path d='M190 280c25 15 77 15 102 0 12-7 18 10 10 20-20 25-82 25-102 0-8-10-2-27 10-20z' fill='%2378be20'/></svg>">
     
     <title>Focus Flow - Advanced Task Manager</title>
@@ -58,6 +57,7 @@
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
 
         .nav-btn {
@@ -125,7 +125,7 @@
             gap: 12px;
         }
 
-        input, select, button {
+        input, select, textarea, button {
             font: inherit;
             padding: 10px 14px;
             border: 1px solid var(--border);
@@ -133,7 +133,7 @@
             outline: none;
         }
 
-        input:focus, select:focus {
+        input:focus, select:focus, textarea:focus {
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(0, 130, 144, 0.15);
         }
@@ -311,6 +311,7 @@
         <div class="nav-tabs">
             <button class="nav-btn active" onclick="switchView('today')">Today's Hub</button>
             <button class="nav-btn" onclick="switchView('clients')">Manage Clients</button>
+            <button class="nav-btn" onclick="switchView('sync')">🔄 Device Sync</button>
         </div>
 
         <!-- VIEW 1: TODAY'S HUB & GAMEFIED PROGRESS -->
@@ -386,6 +387,28 @@
             </div>
         </div>
 
+        <!-- VIEW 3: DEVICE SYNC (EXPORT / IMPORT) -->
+        <div id="view-sync" class="view-section">
+            <div class="card">
+                <h3 style="margin-top:0; color:var(--primary);">Sync Data Between Devices</h3>
+                <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.4;">
+                    Since browsers keep data separated on each device, you can export your settings/tasks from one device and import them into the other.
+                </p>
+                <div style="display: grid; gap: 15px; margin-top: 20px;">
+                    <div>
+                        <h4 style="margin: 0 0 8px 0; font-size: 0.95rem;">1. Export Data (From source device)</h4>
+                        <button type="button" onclick="exportData()">Copy Data Code / Download Backup</button>
+                    </div>
+                    <hr style="border: none; border-top: 1px solid var(--border); width: 100%;">
+                    <div>
+                        <h4 style="margin: 0 0 8px 0; font-size: 0.95rem;">2. Import Data (To target device)</h4>
+                        <textarea id="import-area" rows="4" placeholder="Paste your exported data code here..." style="width: 100%; box-sizing: border-box; margin-bottom: 8px;"></textarea>
+                        <button type="button" onclick="importData()" style="background-color: var(--success);">Apply Imported Data</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -422,9 +445,44 @@
             if (viewName === 'today') {
                 document.getElementById('view-today').classList.add('active');
                 event.target.classList.add('active');
-            } else {
+            } else if (viewName === 'clients') {
                 document.getElementById('view-clients').classList.add('active');
                 event.target.classList.add('active');
+            } else if (viewName === 'sync') {
+                document.getElementById('view-sync').classList.add('active');
+                event.target.classList.add('active');
+            }
+        }
+
+        function exportData() {
+            const backupObj = { clients, tasks };
+            const jsonString = JSON.stringify(backupObj);
+            navigator.clipboard.writeText(jsonString).then(() => {
+                alert("Data copied to your clipboard! Open the app on your other device, go to 'Device Sync', paste it into the box, and click 'Apply Imported Data'.");
+            }).catch(() => {
+                prompt("Copy your backup data string manually:", jsonString);
+            });
+        }
+
+        function importData() {
+            const rawInput = document.getElementById('import-area').value.trim();
+            if (!rawInput) {
+                alert("Please paste your backup data code first.");
+                return;
+            }
+            try {
+                const parsed = JSON.parse(rawInput);
+                if (parsed.clients && parsed.tasks) {
+                    clients = parsed.clients;
+                    tasks = parsed.tasks;
+                    saveAndRender();
+                    alert("Data imported successfully! Your clients and tasks are now synced.");
+                    switchView('today');
+                } else {
+                    alert("Invalid data structure format.");
+                }
+            } catch (err) {
+                alert("Could not parse JSON data. Please check what you pasted.");
             }
         }
 
