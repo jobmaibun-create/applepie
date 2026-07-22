@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus Flow - Task Manager</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-main: #1b2a32;
+            --text-muted: #627d86;
+            --primary: #008290;
+            --primary-hover: #006670;
+            --client-color: #0099ff;
+            --general-color: #78be20;
+            --border: #d9e2ec;
+            --danger: #e3342f;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            color: var(--primary);
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        /* Form Controls */
+        form {
+            display: grid;
+            gap: 12px;
+        }
+
+        input, select, button {
+            font: inherit;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 130, 144, 0.15);
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        /* Focus Mode Banner */
+        #focus-banner {
+            background: linear-gradient(135deg, #008290, #00acc1);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        #focus-banner h3 {
+            margin: 0 0 8px 0;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.85;
+        }
+
+        #focus-task-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        /* Task Lists */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .tab-btn.active {
+            background: var(--text-main);
+            color: white;
+            border-color: var(--text-main);
+        }
+
+        ul.task-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .task-item:last-child {
+            border-bottom: none;
+        }
+
+        .task-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .task-info input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .task-text {
+            font-size: 0.95rem;
+        }
+
+        .completed .task-text {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .badges {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .badge-client {
+            background-color: rgba(0, 153, 255, 0.1);
+            color: var(--client-color);
+        }
+
+        .badge-general {
+            background-color: rgba(120, 190, 32, 0.15);
+            color: #5c9213;
+        }
+
+        .badge-daily {
+            background-color: rgba(0, 130, 144, 0.1);
+            color: var(--primary);
+        }
+
+        .badge-once {
+            background-color: rgba(98, 125, 134, 0.1);
+            color: var(--text-muted);
+        }
+
+        .delete-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: none;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .delete-btn:hover {
+            color: var(--danger);
+            background: transparent;
+        }
+
+        .empty-state {
+            color: var(--text-muted);
+            text-align: center;
+            padding: 20px 0;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Focus Flow</h1>
+            <span id="date-display" style="color: var(--text-muted); font-size: 0.9rem;"></span>
+        </header>
+
+        <!-- Focus Mode Box (Highlights the very next pending task) -->
+        <div id="focus-banner">
+            <h3>Current Focus</h3>
+            <div id="focus-task-title">No active tasks! Take a break.</div>
+            <button id="focus-done-btn" style="background: white; color: var(--primary);">Mark Complete</button>
+        </div>
+
+        <!-- Add Task Form -->
+        <div class="card">
+            <form id="task-form">
+                <input type="text" id="task-input" placeholder="What needs to be done? (e.g., Learn GEO strategies)" required>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <select id="task-category">
+                        <option value="client">Client Task</option>
+                        <option value="general">General Task (e.g., GEO)</option>
+                    </select>
+                    <select id="task-frequency">
+                        <option value="once">One-Time Task</option>
+                        <option value="daily">Daily Recurrent</option>
+                    </select>
+                </div>
+                <button type="submit">Add Task</button>
+            </form>
+        </div>
+
+        <!-- Task Management Card -->
+        <div class="card">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('all')">All Tasks</button>
+                <button class="tab-btn" onclick="switchTab('client')">Client</button>
+                <button class="tab-btn" onclick="switchTab('general')">General</button>
+            </div>
+            
+            <ul id="task-list" class="task-list">
+                <!-- Tasks injected via JS -->
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        let tasks = JSON.parse(localStorage.getItem('focus_flow_tasks_v2')) || [];
+        let currentFilter = 'all';
+
+        // Set Date & handle daily task auto-reset check
+        const options = { weekday: 'long', month: 'short', day: 'numeric' };
+        const todayStr = new Date().toDateString();
+        document.getElementById('date-display').innerText = new Date().toLocaleDateString('en-US', options);
+
+        // Check if day changed to uncheck daily tasks
+        const lastOpenDate = localStorage.getItem('focus_flow_last_date');
+        if (lastOpenDate !== todayStr) {
+            tasks = tasks.map(t => t.frequency === 'daily' ? { ...t, completed: false } : t);
+            localStorage.setItem('focus_flow_last_date', todayStr);
+        }
+
+        const form = document.getElementById('task-form');
+        const taskInput = document.getElementById('task-input');
+        const taskCategory = document.getElementById('task-category');
+        const taskFrequency = document.getElementById('task-frequency');
+        const taskList = document.getElementById('task-list');
+        
+        const focusBanner = document.getElementById('focus-banner');
+        const focusTaskTitle = document.getElementById('focus-task-title');
+        const focusDoneBtn = document.getElementById('focus-done-btn');
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newTask = {
+                id: Date.now(),
+                text: taskInput.value.trim(),
+                category: taskCategory.value,
+                frequency: taskFrequency.value,
+                completed: false
+            };
+            tasks.push(newTask);
+            saveAndRender();
+            taskInput.value = '';
+        });
+
+        function saveAndRender() {
+            localStorage.setItem('focus_flow_tasks_v2', JSON.stringify(tasks));
+            render();
+        }
+
+        function toggleTask(id) {
+            tasks = tasks.map(t => {
+                if (t.id === id) {
+                    // If it's a one-time task and being marked complete, we can either keep or check it off. 
+                    // Daily tasks automatically uncheck on a new day based on logic above.
+                    return { ...t, completed: !t.completed };
+                }
+                return t;
+            });
+            saveAndRender();
+        }
+
+        function deleteTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            saveAndRender();
+        }
+
+        function switchTab(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderTasks();
+        }
+
+        function renderFocusMode() {
+            const nextTask = tasks.find(t => !t.completed);
+            if (nextTask) {
+                focusBanner.style.display = 'block';
+                focusTaskTitle.innerText = nextTask.text;
+                focusDoneBtn.onclick = () => toggleTask(nextTask.id);
+            } else {
+                focusBanner.style.display = 'none';
+            }
+        }
+
+        function renderTasks() {
+            let filteredTasks = tasks;
+            if (currentFilter !== 'all') {
+                filteredTasks = tasks.filter(t => t.category === currentFilter);
+            }
+
+            if (filteredTasks.length === 0) {
+                taskList.innerHTML = `<li class="empty-state">No tasks found here. Keep up the momentum!</li>`;
+                return;
+            }
+
+            taskList.innerHTML = filteredTasks.map(task => `
+                <li class="task-item ${task.completed ? 'completed' : ''}">
+                    <div class="task-info">
+                        <input type="checkbox" ${task.completed ? 'checked' : ''} onclick="toggleTask(${task.id})">
+                        <span class="task-text">${escapeHtml(task.text)}</span>
+                    </div>
+                    <div class="badges">
+                        <span class="badge badge-${task.category}">${task.category}</span>
+                        <span class="badge badge-${task.frequency}">${task.frequency}</span>
+                        <button class="delete-btn" onclick="deleteTask(${task.id})">&times;</button>
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        function render() {
+            renderFocusMode();
+            renderTasks();
+        }
+
+        // Initial render
+        render();
+    </script>
+</body>
+</html>
