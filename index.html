@@ -19,9 +19,8 @@
             --primary: #002d62;          /* Volksbank Deep Blue */
             --accent-green: #6cc24a;     /* Volksbank Lime Green for buttons */
             --accent-green-hover: #5ab13c;
-            --business-color: #0056b3;   /* Distinct Business Blue */
-            --personal-color: #d97706;   /* Distinct Personal Amber/Orange */
-            --growth-color: #6cc24a;     /* Growth */
+            --client-color: #0056b3;     
+            --growth-color: #6cc24a;     
             --border: #d9e2ec;
             --danger: #e3342f;
             --success: #38c172;
@@ -141,7 +140,7 @@
         }
 
         button {
-            background-color: var(--accent-green); /* Green buttons */
+            background-color: var(--accent-green);
             color: #ffffff;
             font-weight: 600;
             border: none;
@@ -244,14 +243,9 @@
             text-transform: uppercase;
         }
 
-        .badge-business {
+        .badge-client {
             background-color: rgba(0, 86, 179, 0.12);
-            color: var(--business-color);
-        }
-
-        .badge-personal {
-            background-color: rgba(217, 119, 6, 0.12);
-            color: var(--personal-color);
+            color: var(--client-color);
         }
 
         .badge-growth {
@@ -394,10 +388,6 @@
                 <h3 style="margin-top:0; color:var(--primary);">Add New Client</h3>
                 <form id="client-form">
                     <input type="text" id="client-name-input" placeholder="Client Name (e.g., Acme Corp)" required>
-                    <select id="client-type-input" required>
-                        <option value="business">Business</option>
-                        <option value="personal">Personal</option>
-                    </select>
                     <button type="submit">Save Client</button>
                 </form>
             </div>
@@ -415,7 +405,7 @@
         const API_URL = "https://script.google.com/macros/s/AKfycbwgtXhoNiEyXKi4nIweq87j8VczLygzU60WyUtze7Je1XPQj39b0Qhj2d5oPhdpZc8Y/exec";
         
         let clients = JSON.parse(localStorage.getItem('focus_flow_clients')) || [];
-        let tasks = JSON.parse(localStorage.getItem('focus_flow_tasks_v7')) || [];
+        let tasks = JSON.parse(localStorage.getItem('focus_flow_tasks_v8')) || [];
 
         const daysMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const now = new Date();
@@ -434,7 +424,7 @@
                         clients = data.clients;
                         tasks = data.tasks;
                         localStorage.setItem('focus_flow_clients', JSON.stringify(clients));
-                        localStorage.setItem('focus_flow_tasks_v7', JSON.stringify(tasks));
+                        localStorage.setItem('focus_flow_tasks_v8', JSON.stringify(tasks));
                     }
                     checkDailyReset();
                     render();
@@ -454,7 +444,7 @@
             statusEl.innerText = "💾 Saving...";
             
             localStorage.setItem('focus_flow_clients', JSON.stringify(clients));
-            localStorage.setItem('focus_flow_tasks_v7', JSON.stringify(tasks));
+            localStorage.setItem('focus_flow_tasks_v8', JSON.stringify(tasks));
             render();
 
             try {
@@ -504,11 +494,9 @@
         document.getElementById('client-form').addEventListener('submit', (e) => {
             e.preventDefault();
             const nameInput = document.getElementById('client-name-input');
-            const typeInput = document.getElementById('client-type-input');
             const newClient = { 
                 id: Date.now(), 
-                name: nameInput.value.trim(),
-                type: typeInput.value // 'business' or 'personal'
+                name: nameInput.value.trim()
             };
             clients.push(newClient);
             nameInput.value = '';
@@ -581,21 +569,9 @@
             const select = document.getElementById('task-assignment');
             let html = `<option value="growth">Growth</option>`;
             
-            // Separate clients into Business and Personal for clean dropdown grouping or listing
-            const businessClients = clients.filter(c => c.type === 'business');
-            const personalClients = clients.filter(c => c.type === 'personal');
-
-            if (businessClients.length > 0) {
-                html += `<optgroup label="Business Clients">`;
-                businessClients.forEach(c => {
-                    html += `<option value="${c.id}">${escapeHtml(c.name)}</option>`;
-                });
-                html += `</optgroup>`;
-            }
-
-            if (personalClients.length > 0) {
-                html += `<optgroup label="Personal Clients">`;
-                personalClients.forEach(c => {
+            if (clients.length > 0) {
+                html += `<optgroup label="Clients">`;
+                clients.forEach(c => {
                     html += `<option value="${c.id}">${escapeHtml(c.name)}</option>`;
                 });
                 html += `</optgroup>`;
@@ -612,10 +588,7 @@
             }
             list.innerHTML = clients.map(c => `
                 <li class="task-item">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span class="task-text" style="font-weight: 600;">${escapeHtml(c.name)}</span>
-                        <span class="badge ${c.type === 'business' ? 'badge-business' : 'badge-personal'}">${c.type}</span>
-                    </div>
+                    <span class="task-text" style="font-weight: 600;">${escapeHtml(c.name)}</span>
                     <button class="delete-btn" onclick="deleteClient(${c.id})">&times;</button>
                 </li>
             `).join('');
@@ -647,7 +620,7 @@
             const percentage = total > 0 ? Math.round((completedCount / total) * 100) : 0;
 
             document.getElementById('progress-text').innerText = `Daily Momentum: ${percentage}% (${completedCount}/${total} Done)`;
-            document.getElementById('progress-bar-fill').style.width = `${percentage}%`;
+            document.getElementById('progress-bar-fill').style.width = `${percentage%}`;
 
             if (percentage === 100 && total > 0) {
                 document.getElementById('streak-text').innerText = `🔥 Completed! Amazing job!`;
@@ -677,9 +650,7 @@
                 } else {
                     const clientObj = clients.find(c => c.id == task.assignment);
                     const clientName = clientObj ? clientObj.name : 'Client';
-                    const clientType = clientObj ? clientObj.type : 'business';
-                    const badgeClass = clientType === 'personal' ? 'badge-personal' : 'badge-business';
-                    badgeHtml = `<span class="badge ${badgeClass}">${escapeHtml(clientName)}</span>`;
+                    badgeHtml = `<span class="badge badge-client">${escapeHtml(clientName)}</span>`;
                 }
 
                 return `
