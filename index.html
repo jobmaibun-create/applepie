@@ -9,7 +9,7 @@
     <!-- Green Apple Icon for iOS Home Screen -->
     <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='115' fill='%236cc24a'/><path d='M344.5 153.2c-23.7 0-45.7 13.8-56.9 25.1-10.3 10.4-24.8 17.6-39.6 17.5-14.8-.1-28.7-7-39-17.2-11.4-11.4-33.3-25.4-57.3-25.4-44.5 0-82.9 36.1-82.9 101.4 0 71.4 47.9 161.4 89.6 207.2 21 23.3 45.9 49.3 75.3 48.5 29.8-.8 40.5-19.2 75.8-19.2 35.3 0 45.2 19.2 75.8 19.2 29.8.8 55.4-26.6 76.4-50 41.7-45.8 89.6-135.8 89.6-207.2 0-65.3-38.4-101.4-82.9-101.4z' fill='%23ffffff'/><path d='M320.5 96c14.2-17.1 23.8-40.9 21.2-64-21.9 1.8-48.4 14.6-64 32.1-13.4 15.1-25.2 39.4-21.8 62.6 24.3 1.8 48.6-11.9 64.6-30.7z' fill='%23ffffff'/><circle cx='200' cy='230' r='18' fill='%236cc24a'/><path d='M190 280c25 15 77 15 102 0 12-7 18 10 10 20-20 25-82 25-102 0-8-10-2-27 10-20z' fill='%236cc24a'/></svg>">
     
-    <title>Focus Flow - Task Archive</title>
+    <title>Focus Flow - Task Manager</title>
     <style>
         :root {
             --bg-color: #f4f7f6;
@@ -322,6 +322,7 @@
 
         <div class="nav-tabs">
             <button class="nav-btn active" onclick="switchView('today')">Today's Hub</button>
+            <button class="nav-btn" onclick="switchView('calendar')">📅 Calendar View</button>
             <button class="nav-btn" onclick="switchView('clients')">Manage Clients</button>
             <button class="nav-btn" onclick="switchView('archive')">📁 Task Archive</button>
         </div>
@@ -353,7 +354,6 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                         <select id="task-assignment" required>
                             <option value="growth">Growth</option>
-                            <!-- Dynamically populated clients -->
                         </select>
                         <select id="task-freq-type" onchange="toggleFreqSelectors()">
                             <option value="daily">Daily Recurrent</option>
@@ -388,7 +388,18 @@
             </div>
         </div>
 
-        <!-- VIEW 2: CLIENT MANAGEMENT -->
+        <!-- VIEW 2: CALENDAR VIEW -->
+        <div id="view-calendar" class="view-section">
+            <div class="card">
+                <h3 style="margin-top:0; color:var(--primary);">Select a Date</h3>
+                <input type="date" id="calendar-date-picker" style="width: 100%; box-sizing: border-box; margin-bottom: 15px;" onchange="renderCalendarDay()">
+                <div id="calendar-day-header" style="font-weight: 600; margin-bottom: 10px; color: var(--primary);"></div>
+                <ul id="calendar-task-list" class="task-list">
+                </ul>
+            </div>
+        </div>
+
+        <!-- VIEW 3: CLIENT MANAGEMENT -->
         <div id="view-clients" class="view-section">
             <div class="card">
                 <h3 style="margin-top:0; color:var(--primary);">Add New Client</h3>
@@ -401,12 +412,11 @@
             <div class="card">
                 <h3 style="margin-top:0; color:var(--primary);">Your Client Roster & History</h3>
                 <div id="client-list" style="display: grid; gap: 15px;">
-                    <!-- Dynamically populated with client history -->
                 </div>
             </div>
         </div>
 
-        <!-- VIEW 3: TASK ARCHIVE -->
+        <!-- VIEW 4: TASK ARCHIVE -->
         <div id="view-archive" class="view-section">
             <div class="card">
                 <h3 style="margin-top:0; color:var(--primary);">Completed Task Archive</h3>
@@ -418,7 +428,6 @@
                     </select>
                 </div>
                 <ul id="archive-list" class="task-list">
-                    <!-- Dynamically populated archive -->
                 </ul>
             </div>
         </div>
@@ -429,8 +438,8 @@
         const API_URL = "https://script.google.com/macros/s/AKfycbwgtXhoNiEyXKi4nIweq87j8VczLygzU60WyUtze7Je1XPQj39b0Qhj2d5oPhdpZc8Y/exec";
         
         let clients = JSON.parse(localStorage.getItem('focus_flow_clients')) || [];
-        let tasks = JSON.parse(localStorage.getItem('focus_flow_tasks_v11')) || [];
-        let archive = JSON.parse(localStorage.getItem('focus_flow_archive_v11')) || [];
+        let tasks = JSON.parse(localStorage.getItem('focus_flow_tasks_v12')) || [];
+        let archive = JSON.parse(localStorage.getItem('focus_flow_archive_v12')) || [];
 
         const daysMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const now = new Date();
@@ -439,6 +448,7 @@
         const todayISOStr = now.toISOString().split('T')[0];
         
         document.getElementById('date-display').innerText = now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+        document.getElementById('calendar-date-picker').value = todayISOStr;
 
         async function fetchFromSheets() {
             const statusEl = document.getElementById('sync-status');
@@ -451,8 +461,8 @@
                         tasks = data.tasks;
                         archive = data.archive || archive;
                         localStorage.setItem('focus_flow_clients', JSON.stringify(clients));
-                        localStorage.setItem('focus_flow_tasks_v11', JSON.stringify(tasks));
-                        localStorage.setItem('focus_flow_archive_v11', JSON.stringify(archive));
+                        localStorage.setItem('focus_flow_tasks_v12', JSON.stringify(tasks));
+                        localStorage.setItem('focus_flow_archive_v12', JSON.stringify(archive));
                     }
                     checkDailyReset();
                     render();
@@ -472,8 +482,8 @@
             statusEl.innerText = "💾 Saving...";
             
             localStorage.setItem('focus_flow_clients', JSON.stringify(clients));
-            localStorage.setItem('focus_flow_tasks_v11', JSON.stringify(tasks));
-            localStorage.setItem('focus_flow_archive_v11', JSON.stringify(archive));
+            localStorage.setItem('focus_flow_tasks_v12', JSON.stringify(tasks));
+            localStorage.setItem('focus_flow_archive_v12', JSON.stringify(archive));
             render();
 
             try {
@@ -508,6 +518,10 @@
             if (viewName === 'today') {
                 document.getElementById('view-today').classList.add('active');
                 event.target.classList.add('active');
+            } else if (viewName === 'calendar') {
+                document.getElementById('view-calendar').classList.add('active');
+                event.target.classList.add('active');
+                renderCalendarDay();
             } else if (viewName === 'clients') {
                 document.getElementById('view-clients').classList.add('active');
                 event.target.classList.add('active');
@@ -583,7 +597,8 @@
                 targetDate,
                 completed: false,
                 timestamp: null,
-                postponedDate: null
+                postponedDate: null,
+                completedDates: [] // Tracks specific date strings when this task was completed
             };
 
             tasks.push(newTask);
@@ -593,26 +608,53 @@
         });
 
         function toggleTask(id) {
+            const dateToCheck = document.getElementById('view-calendar').classList.contains('active') 
+                ? document.getElementById('calendar-date-picker').value 
+                : todayISOStr;
+
             tasks = tasks.map(t => {
                 if (t.id === id) {
-                    const nextCompleted = !t.completed;
-                    const timestamp = nextCompleted ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
-                    const completionDate = nextCompleted ? new Date().toLocaleDateString() + ' ' + timestamp : null;
+                    if (!t.completedDates) t.completedDates = [];
+                    const isAlreadyCompletedOnDate = t.completedDates.includes(dateToCheck);
                     
-                    if (nextCompleted) {
-                        // Push to archive history
+                    let nextCompletedState;
+                    if (dateToCheck === todayISOStr) {
+                        nextCompletedState = !t.completed;
+                    } else {
+                        nextCompletedState = !isAlreadyCompletedOnDate;
+                    }
+
+                    const timestamp = nextCompletedState ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
+                    const completionDateStr = new Date(dateToCheck).toLocaleDateString() + ' ' + (timestamp || '');
+
+                    if (nextCompletedState) {
+                        if (!t.completedDates.includes(dateToCheck)) {
+                            t.completedDates.push(dateToCheck);
+                        }
                         archive.unshift({
                             id: Date.now(),
                             text: t.text,
                             assignment: t.assignment,
-                            completedAt: completionDate
+                            completedAt: completionDateStr,
+                            dateKey: dateToCheck
                         });
+                    } else {
+                        t.completedDates = t.completedDates.filter(d => d !== dateToCheck);
+                        // remove from archive matching date and text
+                        archive = archive.filter(a => !(a.text === t.text && a.dateKey === dateToCheck));
                     }
-                    return { ...t, completed: nextCompleted, timestamp };
+
+                    let mainCompleted = t.completed;
+                    if (dateToCheck === todayISOStr) {
+                        mainCompleted = nextCompletedState;
+                    }
+
+                    return { ...t, completed: mainCompleted, timestamp };
                 }
                 return t;
             });
             saveToSheets();
+            renderCalendarDay();
         }
 
         function deleteTask(id) {
@@ -646,7 +688,6 @@
 
             select.innerHTML = html;
 
-            // Also update archive filter dropdown
             const archiveSelect = document.getElementById('archive-filter-client');
             let archiveHtml = `
                 <option value="all">All Clients & Growth</option>
@@ -735,32 +776,83 @@
             }).join('');
         }
 
-        function renderTasks() {
-            const activeTasks = tasks.filter(t => {
-                if (t.postponedDate && t.postponedDate === todayDateStr) {
-                    t.postponedDate = null;
-                }
-                if (t.postponedDate && t.postponedDate !== todayDateStr) {
-                    return false;
-                }
-
+        function getTasksForDate(targetISO, targetDayName) {
+            return tasks.filter(t => {
                 if (t.freqType === 'daily') return true;
                 if (t.freqType === 'specific') {
-                    return t.selectedDays && t.selectedDays.includes(todayDayStr);
+                    return t.selectedDays && t.selectedDays.includes(targetDayName);
                 }
-                if (t.freqType === 'once') return !t.completed;
+                if (t.freqType === 'once') {
+                    return !t.completed;
+                }
                 if (t.freqType === 'future') {
-                    return t.targetDate === todayISOStr;
+                    return t.targetDate === targetISO;
                 }
                 return true;
             });
+        }
+
+        function renderCalendarDay() {
+            const pickerVal = document.getElementById('calendar-date-picker').value;
+            if (!pickerVal) return;
+
+            const selectedDateObj = new Date(pickerVal);
+            const dayName = daysMap[selectedDateObj.getDay()];
+            const headerEl = document.getElementById('calendar-day-header');
+            const listEl = document.getElementById('calendar-task-list');
+
+            headerEl.innerText = `Tasks for ${selectedDateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}:`;
+
+            const dayTasks = getTasksForDate(pickerVal, dayName);
+
+            if (dayTasks.length === 0) {
+                listEl.innerHTML = `<li class="empty-state">No tasks scheduled for this day.</li>`;
+                return;
+            }
+
+            listEl.innerHTML = dayTasks.map(task => {
+                let badgeHtml = '';
+                if (task.assignment === 'growth') {
+                    badgeHtml = `<span class="badge badge-growth">Growth</span>`;
+                } else {
+                    const clientObj = clients.find(c => c.id == task.assignment);
+                    const clientName = clientObj ? clientObj.name : 'Client';
+                    badgeHtml = `<span class="badge badge-client">${escapeHtml(clientName)}</span>`;
+                }
+
+                let scheduleLabel = task.freqType;
+                if (task.freqType === 'specific') scheduleLabel = task.selectedDays.join(', ');
+                if (task.freqType === 'future') scheduleLabel = `Due: ${task.targetDate}`;
+
+                const isCompletedOnThisDate = task.completedDates && task.completedDates.includes(pickerVal);
+
+                return `
+                    <li class="task-item ${isCompletedOnThisDate ? 'completed' : ''}">
+                        <div class="task-info">
+                            <input type="checkbox" ${isCompletedOnThisDate ? 'checked' : ''} onclick="toggleTask(${task.id})">
+                            <div class="task-details">
+                                <span class="task-text">${escapeHtml(task.text)}</span>
+                                ${isCompletedOnThisDate ? `<span class="timestamp">Completed on this date</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="badges">
+                            ${badgeHtml}
+                            <span class="badge badge-schedule">${scheduleLabel}</span>
+                        </div>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        function renderTasks() {
+            const activeTasks = getTasksForDate(todayISOStr, todayDayStr);
 
             const list = document.getElementById('task-list');
             const focusTitle = document.getElementById('focus-task-title');
             const focusDoneBtn = document.getElementById('focus-done-btn');
 
             const total = activeTasks.length;
-            const completedCount = activeTasks.filter(t => t.completed).length;
+            const completedCount = activeTasks.filter(t => t.completedDates && t.completedDates.includes(todayISOStr)).length;
             const percentage = total > 0 ? Math.round((completedCount / total) * 100) : 0;
 
             document.getElementById('progress-text').innerText = `Daily Momentum: ${percentage}% (${completedCount}/${total} Done)`;
@@ -772,7 +864,7 @@
                 document.getElementById('streak-text').innerText = `🔥 Keep pushing forward`;
             }
 
-            const nextTask = activeTasks.find(t => !t.completed);
+            const nextTask = activeTasks.find(t => !(t.completedDates && t.completedDates.includes(todayISOStr)));
             if (nextTask) {
                 focusTitle.innerText = nextTask.text;
                 focusDoneBtn.style.display = 'inline-block';
@@ -801,13 +893,15 @@
                 if (task.freqType === 'specific') scheduleLabel = task.selectedDays.join(', ');
                 if (task.freqType === 'future') scheduleLabel = `Due: ${task.targetDate}`;
 
+                const isCompletedToday = task.completedDates && task.completedDates.includes(todayISOStr);
+
                 return `
-                    <li class="task-item ${task.completed ? 'completed' : ''}">
+                    <li class="task-item ${isCompletedToday ? 'completed' : ''}">
                         <div class="task-info">
-                            <input type="checkbox" ${task.completed ? 'checked' : ''} onclick="toggleTask(${task.id})">
+                            <input type="checkbox" ${isCompletedToday ? 'checked' : ''} onclick="toggleTask(${task.id})">
                             <div class="task-details">
                                 <span class="task-text">${escapeHtml(task.text)}</span>
-                                ${task.completed && task.timestamp ? `<span class="timestamp">Completed at ${task.timestamp}</span>` : ''}
+                                ${isCompletedToday && task.timestamp ? `<span class="timestamp">Completed at ${task.timestamp}</span>` : ''}
                             </div>
                         </div>
                         <div class="badges">
